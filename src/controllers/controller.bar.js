@@ -232,29 +232,31 @@ module.exports = DatasetController.extend({
 	 */
 	_getStacks: function(last) {
 		var me = this;
+		var chart = me.chart;
 		var scale = me._getIndexScale();
-		var metasets = scale._getMatchingVisibleMetas(me._type);
 		var stacked = scale.options.stacked;
-		var ilen = metasets.length;
+		var ilen = last === undefined ? chart.data.datasets.length : last + 1;
 		var stacks = [];
-		var i, meta;
-
+		var labels = chart.config.data.labels; //so we can match meta.stack to a dataset
+		var i, meta, j; //added j so we can iterate over labels
 		for (i = 0; i < ilen; ++i) {
-			meta = metasets[i];
-			// stacked   | meta.stack
-			//           | found | not found | undefined
-			// false     |   x   |     x     |     x
-			// true      |       |     x     |
-			// undefined |       |     x     |     x
-			if (stacked === false || stacks.indexOf(meta.stack) === -1 ||
-				(stacked === undefined && meta.stack === undefined)) {
-				stacks.push(meta.stack);
+			meta = chart.getDatasetMeta(i);
+			//find position of meta.stack in label list
+			for (j = 0; j < labels.length; j++) {
+				if (labels[j] === meta.stack) break;
 			}
-			if (meta.index === last) {
-				break;
+			if (meta.bar && chart.isDatasetVisible(i) &&
+				//We can use i and j to check for blank or missing values and exclude them
+				typeof chart.config.data.datasets[j] !== 'undefined' &&
+				typeof chart.config.data.datasets[j].data[i] !== 'undefined' &&
+				chart.config.data.datasets[j].data[i] !== null &&
+				chart.config.data.datasets[j].data[i] != 0 &&
+				(stacked === false ||
+				(stacked === true && stacks.indexOf(meta.stack) === -1) ||
+				(stacked === undefined && (meta.stack === undefined || stacks.indexOf(meta.stack) === -1)))) {
+					stacks.push(meta.stack);
 			}
 		}
-
 		return stacks;
 	},
 
